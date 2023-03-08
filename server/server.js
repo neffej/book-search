@@ -3,6 +3,8 @@ const path = require('path');
 const db = require('./config/connection');
 const routes = require('./routes');
 
+const { ApolloServer } = require('apollo-server-express');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -19,3 +21,6 @@ app.use(routes);
 db.once('open', () => {
   app.listen(PORT, () => console.log(`🌍 Now listening on localhost:${PORT}`));
 });
+
+
+//* `server.js`: Implement the Apollo Server and apply it to the Express server as middleware.
