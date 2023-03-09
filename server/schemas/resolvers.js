@@ -1,5 +1,5 @@
 // * `resolvers.js`: Define the query and mutation functionality to work with the Mongoose models.
-
+const { AuthenticationError }= require('apollo-server-express');
 const { User, Book } = require('../models');
 
 const { signToken } = require('../utils/auth');
@@ -13,20 +13,49 @@ const resolvers = {
 
     Mutation: {
         login: async(parent, { email, password })=>{
-            return Auth.create
+            const user = await User.findone({ email });
+
+            if(!user){
+                throw new AuthenticationError('No user found with this email address');
+            }
+
+            const correctPw = await user.isCorrectPassword(password);
+
+            if(!correctPw){
+                throw new AuthenticationError("Incorrect credentials");
+            }
+            const token = signToken(user);
+
+            return { token, user };
         },
 
         addUser: async (parent, { username, email, password })=> {
             const user = await User.create({ username, email, password });
-            return user;
+            const token = signToken(user);
+            return { token, user };
+        },
+
+        saveBook: async (parent, args, context) => {
+            if (context.user) {
+                const updatedUserBooks = await User.findOneAndUpdate(
+                    {_id: context.user._id},
+                    {$addToSet: { savedBooks: args } },
+                    {
+                        new: true,
+                        runValidators: true,
+                    }
+                );
+                return updatedUserBooks;
+            }
         },
 
         removeBook: async(parent, { user, bookId })=>{
-            return User.findOneAndUpdate(
+            const updatedBooks = await User.findOneAndUpdate(
                 { _id: user._id },
                 { $pull: { savedBooks: { id: bookId } } },
                 { new: true }
                 );
+            return updatedBooks;
         },
     },
 };
